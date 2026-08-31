@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bis_subscribers",
+  "main": "index.js",
+  "compatibility_date": "2025-02-04",
+  "observability": {
+    "enabled": true,
+  },
+  "kv_namespaces": [
+    {
+      "binding": "SUBSCRIBERS",
+      "id": "4a3456839e0549a68f1988ca7cf83d81",
+    },
+  ],
+}

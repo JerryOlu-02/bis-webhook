@@ -2,80 +2,106 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname === '/subscribe' && request.method === 'POST') {
-      const { email, variantId, productId, productTitle } = await request.json();
+    if (url.pathname === "/subscribe" && request.method === "POST") {
+      const { email, variantId, productId, productTitle } =
+        await request.json();
 
       if (!email || !variantId) {
-        return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
+        return new Response(JSON.stringify({ error: "Missing fields" }), {
+          status: 400,
+        });
       }
 
       const key = `variant:${variantId}`;
-      const existing = await env.SUBSCRIBERS.get(key, { type: 'json' }) || [];
+      const existing = (await env.SUBSCRIBERS.get(key, { type: "json" })) || [];
 
-      if (!existing.some(s => s.email === email)) {
+      if (!existing.some((s) => s.email === email)) {
         existing.push({ email, productId, productTitle });
         await env.SUBSCRIBERS.put(key, JSON.stringify(existing));
       }
 
       // Fire your reporting event server-side (bypasses all the ad-blocker/consent issues from earlier)
-      await fetch('https://a.klaviyo.com/api/events', {
-        method: 'POST',
+      await fetch("https://a.klaviyo.com/api/events", {
+        method: "POST",
         headers: {
-          'Authorization': `Klaviyo-API-Key ${env.KLAVIYO_PRIVATE_KEY}`,
-          'Content-Type': 'application/json',
-          'revision': '2024-10-15'
+          Authorization: `Klaviyo-API-Key ${env.KLAVIYO_PRIVATE_KEY}`,
+          "Content-Type": "application/json",
+          revision: "2024-10-15",
         },
         body: JSON.stringify({
           data: {
-            type: 'event',
+            type: "event",
             attributes: {
-              properties: { VariantID: variantId, ProductID: productId, ProductTitle: productTitle },
-              metric: { data: { type: 'metric', attributes: { name: 'Requested Back In Stock' } } },
-              profile: { data: { type: 'profile', attributes: { email } } }
-            }
-          }
-        })
+              properties: {
+                VariantID: variantId,
+                ProductID: productId,
+                ProductTitle: productTitle,
+              },
+              metric: {
+                data: {
+                  type: "metric",
+                  attributes: { name: "Requested Back In Stock" },
+                },
+              },
+              profile: { data: { type: "profile", attributes: { email } } },
+            },
+          },
+        }),
       });
 
       return new Response(JSON.stringify({ success: true }), { status: 200 });
     }
 
-    return new Response('Not found', { status: 404 });
-  }
+    if (url.pathname === "/restock" && request.method === "POST") {
+      const { variantId, inventoryQuantity } = await request.json();
 
-  if (url.pathname === '/restock' && request.method === 'POST') {
-  const { variantId, inventoryQuantity } = await request.json();
+      if (inventoryQuantity <= 0) {
+        return new Response(JSON.stringify({ skipped: true }), { status: 200 });
+      }
 
-  if (inventoryQuantity <= 0) {
-    return new Response(JSON.stringify({ skipped: true }), { status: 200 });
-  }
+      const key = `variant:${variantId}`;
+      const subscribers =
+        (await env.SUBSCRIBERS.get(key, { type: "json" })) || [];
 
-  const key = `variant:${variantId}`;
-  const subscribers = await env.SUBSCRIBERS.get(key, { type: 'json' }) || [];
+      for (const sub of subscribers) {
+        await fetch("https://a.klaviyo.com/api/events", {
+          method: "POST",
+          headers: {
+            Authorization: `Klaviyo-API-Key ${env.KLAVIYO_PRIVATE_KEY}`,
+            "Content-Type": "application/json",
+            revision: "2024-10-15",
+          },
+          body: JSON.stringify({
+            data: {
+              type: "event",
+              attributes: {
+                properties: {
+                  VariantID: variantId,
+                  ProductID: sub.productId,
+                  ProductTitle: sub.productTitle,
+                },
+                metric: {
+                  data: {
+                    type: "metric",
+                    attributes: { name: "Restock Notification Ready" },
+                  },
+                },
+                profile: {
+                  data: { type: "profile", attributes: { email: sub.email } },
+                },
+              },
+            },
+          }),
+        });
+      }
 
-  for (const sub of subscribers) {
-    await fetch('https://a.klaviyo.com/api/events', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Klaviyo-API-Key ${env.KLAVIYO_PRIVATE_KEY}`,
-        'Content-Type': 'application/json',
-        'revision': '2024-10-15'
-      },
-      body: JSON.stringify({
-        data: {
-          type: 'event',
-          attributes: {
-            properties: { VariantID: variantId, ProductID: sub.productId, ProductTitle: sub.productTitle },
-            metric: { data: { type: 'metric', attributes: { name: 'Restock Notification Ready' } } },
-            profile: { data: { type: 'profile', attributes: { email: sub.email } } }
-          }
-        }
-      })
-    });
-  }
+      await env.SUBSCRIBERS.delete(key); // clear so they don't get notified again next restock unless they re-subscribe
 
-  await env.SUBSCRIBERS.delete(key); // clear so they don't get notified again next restock unless they re-subscribe
+      return new Response(JSON.stringify({ notified: subscribers.length }), {
+        status: 200,
+      });
+    }
 
-  return new Response(JSON.stringify({ notified: subscribers.length }), { status: 200 });
-}
+    return new Response("Not found", { status: 404 });
+  },
 };
