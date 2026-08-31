@@ -20,11 +20,13 @@ export default {
         await env.SUBSCRIBERS.put(key, JSON.stringify(existing));
       }
 
+      const klaviyoKey = await env.KLAVIYO_PRIVATE_KEY.get();
+
       // Fire your reporting event server-side (bypasses all the ad-blocker/consent issues from earlier)
       await fetch("https://a.klaviyo.com/api/events", {
         method: "POST",
         headers: {
-          Authorization: `Klaviyo-API-Key ${env.KLAVIYO_PRIVATE_KEY}`,
+          Authorization: `Klaviyo-API-Key ${klaviyoKey}`,
           "Content-Type": "application/json",
           revision: "2024-10-15",
         },
@@ -59,6 +61,8 @@ export default {
         return new Response(JSON.stringify({ skipped: true }), { status: 200 });
       }
 
+      const klaviyoKey = await env.KLAVIYO_PRIVATE_KEY.get();
+
       const key = `variant:${variantId}`;
       const subscribers =
         (await env.SUBSCRIBERS.get(key, { type: "json" })) || [];
@@ -67,7 +71,7 @@ export default {
         await fetch("https://a.klaviyo.com/api/events", {
           method: "POST",
           headers: {
-            Authorization: `Klaviyo-API-Key ${env.KLAVIYO_PRIVATE_KEY}`,
+            Authorization: `Klaviyo-API-Key ${klaviyoKey}`,
             "Content-Type": "application/json",
             revision: "2024-10-15",
           },
