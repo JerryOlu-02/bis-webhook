@@ -1,6 +1,16 @@
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://www.nctrhq.com", // or your custom domain
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
 
     if (url.pathname === "/subscribe" && request.method === "POST") {
       const { email, variantId, productId, productTitle } =
