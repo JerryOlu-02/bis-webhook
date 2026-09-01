@@ -82,7 +82,6 @@ export default {
 
     if (url.pathname === "/restock" && request.method === "POST") {
       const payload = await request.json();
-      console.log("RESTOCK PAYLOAD RECEIVED:", JSON.stringify(payload));
 
       const variantId = payload.input?.variantId;
       const inventoryQuantity = Number(payload.input?.inventoryQuantity);
@@ -145,6 +144,10 @@ export default {
           }),
         });
       }
+
+      console.log(
+        `Restock processed: variant=${variantId}, notified=${subscribers.length}`,
+      );
 
       await env.SUBSCRIBERS.delete(key); // clear so they don't get notified again next restock unless they re-subscribe
 
