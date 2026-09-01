@@ -81,6 +81,9 @@ export default {
     }
 
     if (url.pathname === "/restock" && request.method === "POST") {
+      const payload = await request.json();
+      console.log("RESTOCK PAYLOAD RECEIVED:", JSON.stringify(payload));
+
       const { variantId, inventoryQuantity } = await request.json();
 
       if (inventoryQuantity <= 0) {
