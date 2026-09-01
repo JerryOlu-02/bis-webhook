@@ -84,7 +84,20 @@ export default {
       const payload = await request.json();
       console.log("RESTOCK PAYLOAD RECEIVED:", JSON.stringify(payload));
 
-      const { variantId, inventoryQuantity } = await request.json();
+      const variantId = payload.input?.variantId;
+      const inventoryQuantity = Number(payload.input?.inventoryQuantity);
+
+      if (!variantId || isNaN(inventoryQuantity)) {
+        return new Response(
+          JSON.stringify({
+            error: "Missing or invalid variantId/inventoryQuantity",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          },
+        );
+      }
 
       if (inventoryQuantity <= 0) {
         return new Response(JSON.stringify({ skipped: true }), {
