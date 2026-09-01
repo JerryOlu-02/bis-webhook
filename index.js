@@ -19,6 +19,7 @@ export default {
       if (!email || !variantId) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
           status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
@@ -61,14 +62,20 @@ export default {
         }),
       });
 
-      return new Response(JSON.stringify({ success: true }), { status: 200 });
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     if (url.pathname === "/restock" && request.method === "POST") {
       const { variantId, inventoryQuantity } = await request.json();
 
       if (inventoryQuantity <= 0) {
-        return new Response(JSON.stringify({ skipped: true }), { status: 200 });
+        return new Response(JSON.stringify({ skipped: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
       }
 
       const klaviyoKey = await env.KLAVIYO_PRIVATE_KEY.get();
@@ -113,9 +120,10 @@ export default {
 
       return new Response(JSON.stringify({ notified: subscribers.length }), {
         status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    return new Response("Not found", { status: 404 });
+    return new Response("Not found", { status: 404, headers: corsHeaders });
   },
 };
