@@ -13,8 +13,14 @@ export default {
     }
 
     if (url.pathname === "/subscribe" && request.method === "POST") {
-      const { email, variantId, productId, productTitle } =
-        await request.json();
+      const {
+        email,
+        variantId,
+        productId,
+        productTitle,
+        imageUrl,
+        productHandle,
+      } = await request.json();
 
       if (!email || !variantId) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
@@ -27,7 +33,13 @@ export default {
       const existing = (await env.SUBSCRIBERS.get(key, { type: "json" })) || [];
 
       if (!existing.some((s) => s.email === email)) {
-        existing.push({ email, productId, productTitle });
+        existing.push({
+          email,
+          productId,
+          productTitle,
+          imageUrl,
+          productHandle,
+        });
         await env.SUBSCRIBERS.put(key, JSON.stringify(existing));
       }
 
@@ -100,6 +112,8 @@ export default {
                   VariantID: variantId,
                   ProductID: sub.productId,
                   ProductTitle: sub.productTitle,
+                  ImageUrl: sub.imageUrl,
+                  ProductHandle: sub.productHandle,
                 },
                 metric: {
                   data: {
